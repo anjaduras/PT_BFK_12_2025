@@ -10,8 +10,7 @@ public class Verschiebespiel {
 
         Scanner sc = new Scanner(System.in);
 
-        // Create a random start board
-        generateRandomBoard();
+        initBoardRandom();
 
         while (true) {
             printBoard();
@@ -19,14 +18,14 @@ public class Verschiebespiel {
             System.out.print("Enter number: ");
             int n = sc.nextInt();
 
-            if (move(n)) {
+            if (makeMove(n)) {
                 moves++;
                 System.out.println("Moves: " + moves);
             } else {
                 System.out.println("Invalid move");
             }
 
-            if (isFinished()) {
+            if (isGameOver()) {
                 printBoard();
                 System.out.println("Finished!");
                 break;
@@ -34,35 +33,13 @@ public class Verschiebespiel {
         }
     }
 
-    // Create random board
-    static void generateRandomBoard() {
-        int[] numbers = {1, 2, 3, 4, 5, 6, 7, 8, 0};
-        Random random = new Random();
-
-        // Shuffle numbers
-        for (int i = numbers.length - 1; i > 0; i--) {
-            int j = random.nextInt(i + 1);
-            int temp = numbers[i];
-            numbers[i] = numbers[j];
-            numbers[j] = temp;
-        }
-
-        // Fill the board with the shuffled numbers
-        int index = 0;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                board[i][j] = numbers[index++];
-            }
-        }
-    }
-
-    // Print the board (0 = empty space)
+    // Gibt das Spielbrett aus
     static void printBoard() {
         System.out.println();
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 if (board[i][j] == 0)
-                    System.out.print("  "); // empty space
+                    System.out.print("  ");
                 else
                     System.out.print(board[i][j] + " ");
             }
@@ -71,31 +48,104 @@ public class Verschiebespiel {
         System.out.println();
     }
 
-    // Move the selected number
-    static boolean move(int n) {
+    // Erzeugt eine zufällige Startstellung
+    static void initBoardRandom() {
+        int[] numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
+        Random rand = new Random();
 
-        int nr = -1, nc = -1, er = -1, ec = -1;
+        for (int i = numbers.length - 1; i > 0; i--) {
+            int j = rand.nextInt(i + 1);
+            int temp = numbers[i];
+            numbers[i] = numbers[j];
+            numbers[j] = temp;
+        }
 
+        int index = 0;
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                if (board[i][j] == n) { nr = i; nc = j; }
-                if (board[i][j] == 0) { er = i; ec = j; }
+                board[i][j] = numbers[index++];
             }
         }
+    }
 
-        // Check if the selected number is next to the empty space
-        if (Math.abs(nr - er) + Math.abs(nc - ec) == 1) {
-            board[er][ec] = n;
-            board[nr][nc] = 0;
+    // Führt einen Spielzug aus
+    static boolean makeMove(int number) {
+
+        int[] numberPos = getFieldIndex(number);
+        int[] emptyPos = getEmptyFieldIndex();
+
+        if (numberPos == null)
+            return false;
+
+        if (isAdjacentFields(numberPos, emptyPos)) {
+            swapFields(numberPos, emptyPos);
             return true;
         }
+
         return false;
     }
 
-    // Check if the game is finished
-    static boolean isFinished() {
-        return board[0][0] == 1 && board[0][1] == 2 && board[0][2] == 3 &&
-               board[1][0] == 4 && board[1][1] == 5 && board[1][2] == 6 &&
-               board[2][0] == 7 && board[2][1] == 8 && board[2][2] == 0;
+    // Tauscht zwei Felder
+    static void swapFields(int[] a, int[] b) {
+        int temp = board[a[0]][a[1]];
+        board[a[0]][a[1]] = board[b[0]][b[1]];
+        board[b[0]][b[1]] = temp;
+    }
+
+    // Prüft, ob zwei Felder benachbart sind
+    static boolean isAdjacentFields(int[] a, int[] b) {
+        return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) == 1;
+    }
+
+    // Ermittelt alle Nachbarfelder (optional, aber gefordert)
+    static int[][] getAdjacentFields(int row, int col) {
+
+        int[][] neighbors = new int[4][2];
+        int count = 0;
+
+        if (row > 0)
+            neighbors[count++] = new int[] { row - 1, col };
+        if (row < 2)
+            neighbors[count++] = new int[] { row + 1, col };
+        if (col > 0)
+            neighbors[count++] = new int[] { row, col - 1 };
+        if (col < 2)
+            neighbors[count++] = new int[] { row, col + 1 };
+
+        int[][] result = new int[count][2];
+        for (int i = 0; i < count; i++)
+            result[i] = neighbors[i];
+
+        return result;
+    }
+
+    // Liefert die Position eines Feldes
+    static int[] getFieldIndex(int value) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j] == value)
+                    return new int[] { i, j };
+            }
+        }
+        return null;
+    }
+
+    // Liefert die Position des leeren Feldes
+    static int[] getEmptyFieldIndex() {
+        return getFieldIndex(0);
+    }
+
+    // Prüft, ob das Spiel beendet ist
+    static boolean isGameOver() {
+        int expected = 1;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (i == 2 && j == 2)
+                    return board[i][j] == 0;
+                if (board[i][j] != expected++)
+                    return false;
+            }
+        }
+        return true;
     }
 }
