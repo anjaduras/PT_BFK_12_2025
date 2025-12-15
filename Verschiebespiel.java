@@ -1,151 +1,158 @@
-import java.util.Random;
-import java.util.Scanner;
+import java.io.*;
+import java.util.*;
 
 public class Verschiebespiel {
 
-    static int[][] board = new int[3][3];
-    static int moves = 0;
+    static int[][] board;
+    static int size;
+    static int moves;
 
-    public static void main(String[] args) {
-
+    public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
+        File saveDir = new File("saves");
+        if (!saveDir.exists())
+            saveDir.mkdir();
 
-        initBoardRandom();
+        // Load a game?
+        File[] saves = saveDir.listFiles((d, n) -> n.endsWith(".txt"));
+        if (saves != null && saves.length > 0) {
+            System.out.print("Load a saved game? (y/n): ");
+            if (sc.nextLine().equalsIgnoreCase("y")) {
+                loadGame(sc, saves);
+            } else {
+                newGame(sc);
+            }
+        } else
+            newGame(sc);
 
         while (true) {
             printBoard();
+            System.out.println("Moves: " + moves);
+            System.out.print("Enter number to move or 's' to save & exit: ");
+            String input = sc.nextLine();
 
-            System.out.print("Enter number: ");
-            int n = sc.nextInt();
+            if (input.equalsIgnoreCase("s")) {
+                System.out.print("Save name: ");
+                saveGame(sc.nextLine());
+                System.out.println("Game saved. Exiting...");
+                break;
+            }
 
-            if (makeMove(n)) {
-                moves++;
-                System.out.println("Moves: " + moves);
-            } else {
-                System.out.println("Invalid move");
+            try {
+                int num = Integer.parseInt(input);
+                if (!makeMove(num))
+                    System.out.println("Invalid move!");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input!");
             }
 
             if (isGameOver()) {
                 printBoard();
-                System.out.println("Finished!");
-                break;
+                System.out.println("Finished in " + moves + " moves!");
+                System.out.print("Play again? (y/n): ");
+                if (sc.nextLine().equalsIgnoreCase("y"))
+                    newGame(sc);
+                else
+                    break;
             }
         }
     }
 
-    // Gibt das Spielbrett aus
+    static void newGame(Scanner sc) {
+        System.out.print("Board size: ");
+        size = Integer.parseInt(sc.nextLine());
+        board = new int[size][size];
+        moves = 0;
+        int[] nums = new int[size * size];
+        for (int i = 0; i < nums.length; i++)
+            nums[i] = i;
+        Random r = new Random();
+        for (int i = nums.length - 1; i > 0; i--) {
+            int j = r.nextInt(i + 1);
+            int t = nums[i];
+            nums[i] = nums[j];
+            nums[j] = t;
+        }
+        for (int i = 0, idx = 0; i < size; i++)
+            for (int j = 0; j < size; j++)
+                board[i][j] = nums[idx++];
+    }
+
     static void printBoard() {
-        System.out.println();
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (board[i][j] == 0)
-                    System.out.print("  ");
+        int maxVal = size * size - 1;
+        int digits = Integer.toString(maxVal).length(); // number of digits
+    
+        for (int[] row : board) {
+            for (int val : row) {
+                if (val == 0)
+                    System.out.print(" ".repeat(digits) + " "); // empty field
                 else
-                    System.out.print(board[i][j] + " ");
+                    System.out.print(String.format("%0" + digits + "d ", val)); // leading zeros
             }
             System.out.println();
         }
         System.out.println();
     }
+    
 
-    // Erzeugt eine zufällige Startstellung
-    static void initBoardRandom() {
-        int[] numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
-        Random rand = new Random();
-
-        for (int i = numbers.length - 1; i > 0; i--) {
-            int j = rand.nextInt(i + 1);
-            int temp = numbers[i];
-            numbers[i] = numbers[j];
-            numbers[j] = temp;
-        }
-
-        int index = 0;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                board[i][j] = numbers[index++];
-            }
-        }
-    }
-
-    // Führt einen Spielzug aus
-    static boolean makeMove(int number) {
-
-        int[] numberPos = getFieldIndex(number);
-        int[] emptyPos = getEmptyFieldIndex();
-
-        if (numberPos == null)
+    static boolean makeMove(int num) {
+        int[] pos = find(num), empty = find(0);
+        if (pos == null)
             return false;
-
-        if (isAdjacentFields(numberPos, emptyPos)) {
-            swapFields(numberPos, emptyPos);
+        if (Math.abs(pos[0] - empty[0]) + Math.abs(pos[1] - empty[1]) == 1) {
+            int t = board[pos[0]][pos[1]];
+            board[pos[0]][pos[1]] = board[empty[0]][empty[1]];
+            board[empty[0]][empty[1]] = t;
+            moves++;
             return true;
         }
-
         return false;
     }
 
-    // Tauscht zwei Felder
-    static void swapFields(int[] a, int[] b) {
-        int temp = board[a[0]][a[1]];
-        board[a[0]][a[1]] = board[b[0]][b[1]];
-        board[b[0]][b[1]] = temp;
-    }
-
-    // Prüft, ob zwei Felder benachbart sind
-    static boolean isAdjacentFields(int[] a, int[] b) {
-        return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) == 1;
-    }
-
-    // Ermittelt alle Nachbarfelder (optional, aber gefordert)
-    static int[][] getAdjacentFields(int row, int col) {
-
-        int[][] neighbors = new int[4][2];
-        int count = 0;
-
-        if (row > 0)
-            neighbors[count++] = new int[] { row - 1, col };
-        if (row < 2)
-            neighbors[count++] = new int[] { row + 1, col };
-        if (col > 0)
-            neighbors[count++] = new int[] { row, col - 1 };
-        if (col < 2)
-            neighbors[count++] = new int[] { row, col + 1 };
-
-        int[][] result = new int[count][2];
-        for (int i = 0; i < count; i++)
-            result[i] = neighbors[i];
-
-        return result;
-    }
-
-    // Liefert die Position eines Feldes
-    static int[] getFieldIndex(int value) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (board[i][j] == value)
+    static int[] find(int n) {
+        for (int i = 0; i < size; i++)
+            for (int j = 0; j < size; j++)
+                if (board[i][j] == n)
                     return new int[] { i, j };
-            }
-        }
         return null;
     }
 
-    // Liefert die Position des leeren Feldes
-    static int[] getEmptyFieldIndex() {
-        return getFieldIndex(0);
-    }
-
-    // Prüft, ob das Spiel beendet ist
     static boolean isGameOver() {
-        int expected = 1;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (i == 2 && j == 2)
+        int x = 1;
+        for (int i = 0; i < size; i++)
+            for (int j = 0; j < size; j++) {
+                if (i == size - 1 && j == size - 1)
                     return board[i][j] == 0;
-                if (board[i][j] != expected++)
+                if (board[i][j] != x++)
                     return false;
             }
-        }
         return true;
+    }
+
+    static void saveGame(String name) throws Exception {
+        PrintWriter pw = new PrintWriter(new FileWriter("saves/" + name + ".txt"));
+        pw.println(size);
+        pw.println(moves);
+        for (int[] row : board) {
+            for (int v : row)
+                pw.print(v + " ");
+            pw.println();
+        }
+        pw.close();
+    }
+
+    static void loadGame(Scanner sc, File[] files) throws Exception {
+        System.out.println("Available saves:");
+        for (int i = 0; i < files.length; i++)
+            System.out.println((i + 1) + ": " + files[i].getName().replace(".txt", ""));
+        int choice = Integer.parseInt(sc.nextLine()) - 1;
+        Scanner fsc = new Scanner(files[choice]);
+        size = fsc.nextInt();
+        moves = fsc.nextInt();
+        board = new int[size][size];
+        for (int i = 0; i < size; i++)
+            for (int j = 0; j < size; j++)
+                board[i][j] = fsc.nextInt();
+        fsc.close();
     }
 }
