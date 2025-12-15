@@ -1,22 +1,25 @@
+
+// Java.io für File Operationen, java.util fürs Scanner
 import java.io.*;
 import java.util.*;
 
 public class Verschiebespiel {
-
+    // NTS: static means these variables belong to the CLASS, not individual object
     static int[][] board;
     static int size;
     static int moves;
 
     public static void main(String[] args) throws Exception {
+        // throwing exception if, f.e., the file is not found!
         Scanner sc = new Scanner(System.in);
         File saveDir = new File("saves");
         if (!saveDir.exists())
             saveDir.mkdir();
 
-        // Load a game?
+        // Wenn es schon Spiele gibt, nach Laden fragen
         File[] saves = saveDir.listFiles((d, n) -> n.endsWith(".txt"));
         if (saves != null && saves.length > 0) {
-            System.out.print("Load a saved game? (y/n): ");
+            System.out.print("Gespeichertes Spiel laden? (y/n): ");
             if (sc.nextLine().equalsIgnoreCase("y")) {
                 loadGame(sc, saves);
             } else {
@@ -26,32 +29,35 @@ public class Verschiebespiel {
             newGame(sc);
         }
 
-        // Game loop
+        // SPIELSCHLEIFE (main functionality)
         while (true) {
             printBoard();
-            System.out.println("Moves: " + moves);
-            System.out.print("Enter number to move or 's' to save & exit: ");
+            System.out.println("Spielzüge verwendet: " + moves);
+            System.out
+                    .print("Gib die Nummer ein, die du verschieben möchtest, oder „s“, um zu speichern & zu beenden: ");
             String input = sc.nextLine();
 
             if (input.equalsIgnoreCase("s")) {
-                System.out.print("Save name: ");
+                System.out.print("Name speichern: ");
                 saveGame(sc.nextLine());
-                System.out.println("Game saved. Exiting...");
+                System.out.println("Spiel gespeichert! :) Beenden...");
                 break;
             }
 
             try {
                 int num = Integer.parseInt(input);
+                // parseInt converts a string into integer!
                 if (!makeMove(num))
-                    System.out.println("Invalid move!");
+                    System.out.println("Ungültiger Zug! :(");
+                // makeMove method that tries to move the tile with number num
             } catch (NumberFormatException e) {
-                System.out.println("Invalid input!");
+                System.out.println("Ungültiger Zug! :(");
             }
 
             if (isGameOver()) {
                 printBoard();
-                System.out.println("Finished in " + moves + " moves!");
-                System.out.print("Play again? (y/n): ");
+                System.out.println("Beendet mit " + moves + " Zügen! Glückwunsch! :)");
+                System.out.print("Nochmal spielen? (y/n): ");
                 if (sc.nextLine().equalsIgnoreCase("y")) {
                     newGame(sc);
                 } else {
@@ -61,10 +67,8 @@ public class Verschiebespiel {
         }
     }
 
-    /** ------------------- GAME SETUP ------------------- */
-
     static void newGame(Scanner sc) {
-        System.out.print("Board size: ");
+        System.out.print("Brettgröße: ");
         size = Integer.parseInt(sc.nextLine());
         moves = 0;
         board = new int[size][size];
@@ -89,16 +93,13 @@ public class Verschiebespiel {
                 board[i][j] = nums[idx++];
     }
 
-    /** ------------------- BOARD DISPLAY ------------------- */
-
     static void printBoard() {
         int maxVal = size * size - 1;
-        int digits = Integer.toString(maxVal).length(); // for formatting
-
+        int digits = Integer.toString(maxVal).length(); // Formatierung für Board 4 und größer
         for (int[] row : board) {
             for (int val : row) {
                 if (val == 0)
-                    System.out.print(" ".repeat(digits) + " "); // empty field
+                    System.out.print(" ".repeat(digits) + " "); // leeres Feld
                 else
                     System.out.print(String.format("%0" + digits + "d ", val));
             }
@@ -106,8 +107,6 @@ public class Verschiebespiel {
         }
         System.out.println();
     }
-
-    /** ------------------- MOVES ------------------- */
 
     static boolean makeMove(int num) {
         int[] pos = getFieldIndex(num);
@@ -147,8 +146,6 @@ public class Verschiebespiel {
         return adj;
     }
 
-    /** ------------------- CHECK WIN ------------------- */
-
     static boolean isGameOver() {
         int x = 1;
         for (int i = 0; i < size; i++)
@@ -161,8 +158,6 @@ public class Verschiebespiel {
         return true;
     }
 
-    /** ------------------- HELPERS ------------------- */
-
     static int[] getFieldIndex(int n) {
         for (int i = 0; i < size; i++)
             for (int j = 0; j < size; j++)
@@ -174,8 +169,6 @@ public class Verschiebespiel {
     static int[] getEmptyFieldIndex() {
         return getFieldIndex(0);
     }
-
-    /** ------------------- SAVE/LOAD ------------------- */
 
     static void saveGame(String name) throws Exception {
         PrintWriter pw = new PrintWriter(new FileWriter("saves/" + name + ".txt"));
@@ -190,7 +183,7 @@ public class Verschiebespiel {
     }
 
     static void loadGame(Scanner sc, File[] files) throws Exception {
-        System.out.println("Available saves:");
+        System.out.println("Verfügbare Spielstände:");
         for (int i = 0; i < files.length; i++)
             System.out.println((i + 1) + ": " + files[i].getName().replace(".txt", ""));
         int choice = Integer.parseInt(sc.nextLine()) - 1;
