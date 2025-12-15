@@ -22,9 +22,11 @@ public class Verschiebespiel {
             } else {
                 newGame(sc);
             }
-        } else
+        } else {
             newGame(sc);
+        }
 
+        // Game loop
         while (true) {
             printBoard();
             System.out.println("Moves: " + moves);
@@ -50,22 +52,30 @@ public class Verschiebespiel {
                 printBoard();
                 System.out.println("Finished in " + moves + " moves!");
                 System.out.print("Play again? (y/n): ");
-                if (sc.nextLine().equalsIgnoreCase("y"))
+                if (sc.nextLine().equalsIgnoreCase("y")) {
                     newGame(sc);
-                else
+                } else {
                     break;
+                }
             }
         }
     }
 
+    /** ------------------- GAME SETUP ------------------- */
+
     static void newGame(Scanner sc) {
         System.out.print("Board size: ");
         size = Integer.parseInt(sc.nextLine());
-        board = new int[size][size];
         moves = 0;
+        board = new int[size][size];
+        initBoardRandom();
+    }
+
+    static void initBoardRandom() {
         int[] nums = new int[size * size];
         for (int i = 0; i < nums.length; i++)
             nums[i] = i;
+
         Random r = new Random();
         for (int i = nums.length - 1; i > 0; i--) {
             int j = r.nextInt(i + 1);
@@ -73,49 +83,71 @@ public class Verschiebespiel {
             nums[i] = nums[j];
             nums[j] = t;
         }
+
         for (int i = 0, idx = 0; i < size; i++)
             for (int j = 0; j < size; j++)
                 board[i][j] = nums[idx++];
     }
 
+    /** ------------------- BOARD DISPLAY ------------------- */
+
     static void printBoard() {
         int maxVal = size * size - 1;
-        int digits = Integer.toString(maxVal).length(); // number of digits
-    
+        int digits = Integer.toString(maxVal).length(); // for formatting
+
         for (int[] row : board) {
             for (int val : row) {
                 if (val == 0)
                     System.out.print(" ".repeat(digits) + " "); // empty field
                 else
-                    System.out.print(String.format("%0" + digits + "d ", val)); // leading zeros
+                    System.out.print(String.format("%0" + digits + "d ", val));
             }
             System.out.println();
         }
         System.out.println();
     }
-    
+
+    /** ------------------- MOVES ------------------- */
 
     static boolean makeMove(int num) {
-        int[] pos = find(num), empty = find(0);
+        int[] pos = getFieldIndex(num);
+        int[] empty = getEmptyFieldIndex();
         if (pos == null)
             return false;
-        if (Math.abs(pos[0] - empty[0]) + Math.abs(pos[1] - empty[1]) == 1) {
-            int t = board[pos[0]][pos[1]];
-            board[pos[0]][pos[1]] = board[empty[0]][empty[1]];
-            board[empty[0]][empty[1]] = t;
+
+        if (isAdjacentFields(pos, empty)) {
+            swapFields(pos, empty);
             moves++;
             return true;
         }
         return false;
     }
 
-    static int[] find(int n) {
-        for (int i = 0; i < size; i++)
-            for (int j = 0; j < size; j++)
-                if (board[i][j] == n)
-                    return new int[] { i, j };
-        return null;
+    static void swapFields(int[] a, int[] b) {
+        int temp = board[a[0]][a[1]];
+        board[a[0]][a[1]] = board[b[0]][b[1]];
+        board[b[0]][b[1]] = temp;
     }
+
+    static boolean isAdjacentFields(int[] a, int[] b) {
+        return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) == 1;
+    }
+
+    static List<int[]> getAdjacentFields(int[] pos) {
+        List<int[]> adj = new ArrayList<>();
+        int x = pos[0], y = pos[1];
+        if (x > 0)
+            adj.add(new int[] { x - 1, y });
+        if (x < size - 1)
+            adj.add(new int[] { x + 1, y });
+        if (y > 0)
+            adj.add(new int[] { x, y - 1 });
+        if (y < size - 1)
+            adj.add(new int[] { x, y + 1 });
+        return adj;
+    }
+
+    /** ------------------- CHECK WIN ------------------- */
 
     static boolean isGameOver() {
         int x = 1;
@@ -128,6 +160,22 @@ public class Verschiebespiel {
             }
         return true;
     }
+
+    /** ------------------- HELPERS ------------------- */
+
+    static int[] getFieldIndex(int n) {
+        for (int i = 0; i < size; i++)
+            for (int j = 0; j < size; j++)
+                if (board[i][j] == n)
+                    return new int[] { i, j };
+        return null;
+    }
+
+    static int[] getEmptyFieldIndex() {
+        return getFieldIndex(0);
+    }
+
+    /** ------------------- SAVE/LOAD ------------------- */
 
     static void saveGame(String name) throws Exception {
         PrintWriter pw = new PrintWriter(new FileWriter("saves/" + name + ".txt"));
@@ -146,6 +194,7 @@ public class Verschiebespiel {
         for (int i = 0; i < files.length; i++)
             System.out.println((i + 1) + ": " + files[i].getName().replace(".txt", ""));
         int choice = Integer.parseInt(sc.nextLine()) - 1;
+
         Scanner fsc = new Scanner(files[choice]);
         size = fsc.nextInt();
         moves = fsc.nextInt();
